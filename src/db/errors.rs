@@ -16,13 +16,12 @@ pub enum MyError {
 
 impl Display for MyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
-        // match *self {
-            // MyError::NotFound => "Not Found",   
-            // MyError::PGError(_) => "PGError",
-            // MyError::PGMError(_) => "PGMError",
-            // MyError::PoolError(_) => "PoolError"
-        // }
+        match *self {
+            MyError::NotFound => write!(f, "Not Found"),   
+            MyError::PGError(_) => write!(f, "PGError"),
+            MyError::PGMError(_) => write!(f, "PGMError"),
+            MyError::PoolError(_) => write!(f, "PoolError")
+        }
     }
 }
 
