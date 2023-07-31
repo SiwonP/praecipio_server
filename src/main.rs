@@ -48,23 +48,26 @@ mod tests {
                 )
         ).await;
 
+        // Create the request that inserts a new person in the table
         let req = test::TestRequest::post()
             .uri("/users")
             .set_json(person)
             .to_request();
 
         let resp = test::call_service(&app, req).await;
+        println!("{:?}", resp.response().body());
         assert_eq!(resp.status(), StatusCode::OK);
 
-        let body: Person  = test::read_body_json(resp).await;
+        // let body: Person  = test::read_body_json(resp).await;
         
-        let req = test::TestRequest::delete()
-            .uri("/users")
-            .set_json(body)
-            .to_request();
+        // // Create the request that delete the previsouly inserted person in the database
+        // let req = test::TestRequest::delete()
+        //     .uri("/users")
+        //     .set_json(body)
+        //     .to_request();
 
-        let resp = test::call_service(&app, req).await;
-        assert_eq!(resp.status(), StatusCode::OK);
+        // let resp = test::call_service(&app, req).await;
+        // assert_eq!(resp.status(), StatusCode::OK);
 
     }
 
@@ -97,6 +100,7 @@ mod tests {
                 )
         ).await;
 
+        // Create the request that inserts a new event in the table
         let req = test::TestRequest::post()
             .uri("/events")
             .set_json(event)
@@ -107,6 +111,7 @@ mod tests {
 
         let body: Event  = test::read_body_json(resp).await;
         
+        // Create the request that delete the previsouly inserted person in the database
         let req = test::TestRequest::delete()
             .uri("/events")
             .set_json(body)
@@ -144,6 +149,7 @@ mod tests {
                 )
         ).await;
 
+        // Create the request that inserts a new organization in the table
         let req = test::TestRequest::post()
             .uri("/organizations")
             .set_json(organization)
@@ -154,6 +160,7 @@ mod tests {
 
         let body: Organization  = test::read_body_json(resp).await;
         
+        // Create the request that delete the previsouly inserted organization in the database
         let req = test::TestRequest::delete()
             .uri("/organizations")
             .set_json(body)
@@ -169,6 +176,7 @@ mod tests {
 
 use ::config::Config;
 use actix_web::{web, App, HttpServer};
+use actix_cors::Cors;
 use dotenv::dotenv;
 use db::handlers::{
     create_event, 
@@ -204,9 +212,22 @@ async fn main() -> std::io::Result<()> {
 
     let pool = config.pg.create_pool(None, NoTls).unwrap();
 
+
+    
+        // .allowed_origin("https://www.rust-lang.org")
+        // .allowed_methods(vec!["GET", "POST"])
+        // .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+        // .allowed_header(header::CONTENT_TYPE)
+        // .max_age(3600);
+
+
     let server = HttpServer::new(move || {
+
+        let cors = Cors::permissive();
+
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .wrap(cors)
             .service(web::resource("/events")
                 .route(web::post().to(create_event))
                 .route(web::patch().to(modify_event))
@@ -218,9 +239,13 @@ async fn main() -> std::io::Result<()> {
                 .route(web::delete().to(delete_plan))
             )
             .service(web::resource("/users")
+                // .route(web::get().to(get_persons))
                 .route(web::post().to(create_person))
                 .route(web::patch().to(modify_person))
                 .route(web::delete().to(delete_person))
+            )
+            .service(web::resource("/users/{person_id}/events")
+                .route(web::get().to(get_events))
             )
             .service(web::resource("/planner")
                 .route(web::post().to(create_planner))

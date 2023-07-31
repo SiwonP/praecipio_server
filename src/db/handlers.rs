@@ -2,7 +2,7 @@ use actix_web::{web, Error, HttpResponse};
 use deadpool_postgres::{Client, Pool};
 
 use crate::{
-    db::db, 
+    db::query, 
     db::errors::MyError, 
     db::models::{
         Event, 
@@ -23,7 +23,7 @@ pub async fn create_event(
 
     let client: Client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let new_event = db::create_event(&client, event_info).await?;
+    let new_event = query::create_event(&client, event_info).await?;
 
     Ok(HttpResponse::Ok().json(new_event))
 }
@@ -36,7 +36,7 @@ pub async fn modify_event(
 
     let client: Client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let modified_event = db::modify_event(&client, event_info).await?;
+    let modified_event = query::modify_event(&client, event_info).await?;
 
     Ok(HttpResponse::Ok().json(modified_event))
 
@@ -50,7 +50,7 @@ pub async fn delete_event(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let nb_deleted_event = db::delete_event(&client, event_info).await?;
+    let nb_deleted_event = query::delete_event(&client, event_info).await?;
 
     match nb_deleted_event {
         0 => Ok(HttpResponse::NotFound().finish()),
@@ -68,7 +68,7 @@ pub async fn get_events(
 
     let client: Client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let events = db::get_events(&client, person_info).await?;
+    let events = query::get_events(&client, person_info).await?;
 
     Ok(HttpResponse::Ok().json(events))
 }
@@ -81,7 +81,7 @@ pub async fn create_plan(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let new_plan = db::create_plan(&client, plan_info).await?;
+    let new_plan = query::create_plan(&client, plan_info).await?;
 
     Ok(HttpResponse::Ok().json(new_plan))
 }
@@ -94,7 +94,7 @@ pub async fn delete_plan(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let nb_delete_plan = db::delete_plan(&client, plan_info).await?;
+    let nb_delete_plan = query::delete_plan(&client, plan_info).await?;
 
     match nb_delete_plan {
         0 => Ok(HttpResponse::NotFound().finish()),
@@ -109,7 +109,7 @@ pub async fn create_planner(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let new_planner = db::create_planner(&client).await?;
+    let new_planner = query::create_planner(&client).await?;
 
     Ok(HttpResponse::Ok().json(new_planner))
 }
@@ -122,7 +122,7 @@ pub async fn delete_planner(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let nb_delete_planner = db::delete_planner(&client, planner_info).await?;
+    let nb_delete_planner = query::delete_planner(&client, planner_info).await?;
 
     match nb_delete_planner {
         0 => Ok(HttpResponse::NotFound().finish()),
@@ -135,14 +135,22 @@ pub async fn create_person(
     person: web::Json<Person>,
     db_pool: web::Data<Pool>
 ) -> Result<HttpResponse, MyError> {
-    let person_info = person.into_inner();
+
+    let person_inf0 = person.into_inner();
 
     let client: Client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let person = db::create_person(&client, person_info).await?;
+    let planner = query::create_planner(&client).await?;
+
+    let person_info = Person {
+        person_id: None, 
+        person_name: person_inf0.person_name, 
+        planner_id: Some(planner.planner_id)
+    };
+
+    let person = query::create_person(&client, person_info).await?;
 
     Ok(HttpResponse::Ok().json(person))
-
 }
 
 pub async fn modify_person(
@@ -153,7 +161,7 @@ pub async fn modify_person(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let person = db::modify_person(&client, person_info).await?;
+    let person = query::modify_person(&client, person_info).await?;
 
     Ok(HttpResponse::Ok().json(person))
 }
@@ -164,10 +172,9 @@ pub async fn delete_person(
 ) -> Result<HttpResponse, MyError> {
     let person_info = person.into_inner();
 
-
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let nb_deleted_person = db::delete_person(&client, person_info).await?;
+    let nb_deleted_person = query::delete_person(&client, person_info).await?;
 
     match nb_deleted_person {
         0 => Ok(HttpResponse::NotFound().finish()),
@@ -184,7 +191,7 @@ pub async fn create_affiliation(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let new_affiliation = db::create_affiliation(&client, affiliation_info).await?;
+    let new_affiliation = query::create_affiliation(&client, affiliation_info).await?;
 
     Ok(HttpResponse::Ok().json(new_affiliation))
 }
@@ -197,7 +204,7 @@ pub async fn delete_affiliation(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let nb_delete_affiliation = db::delete_affiliation(&client, affiliation_info).await?;
+    let nb_delete_affiliation = query::delete_affiliation(&client, affiliation_info).await?;
 
     match nb_delete_affiliation {
         0 => Ok(HttpResponse::NotFound().finish()),
@@ -214,7 +221,15 @@ pub async fn create_organization(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let new_organization = db::create_organization(&client, organization_info).await?;
+    let planner = query::create_planner(&client).await?;
+
+    let organization_info = Organization { 
+        organization_id: None, 
+        organization_name: organization_info.organization_name, 
+        planner_id: Some(planner.planner_id)
+    };
+
+    let new_organization = query::create_organization(&client, organization_info).await?;
 
     Ok(HttpResponse::Ok().json(new_organization))
 }
@@ -227,7 +242,7 @@ pub async fn delete_organization(
 
     let client = db_pool.get().await.map_err(MyError::PoolError)?;
 
-    let nb_delete_organization = db::delete_organization(&client, organization_info).await?;
+    let nb_delete_organization = query::delete_organization(&client, organization_info).await?;
 
     match nb_delete_organization {
         0 => Ok(HttpResponse::NotFound().finish()),

@@ -137,7 +137,7 @@ pub async fn create_planner(client: &Client) -> Result<Planner, MyError> {
     let _stmt = "insert into planner default values returning $table_fields;";
     let _stmt = _stmt.replace("$table_fields", &Planner::sql_table_fields());
     let statement = client.prepare(&_stmt).await.map_err(MyError::PGError)?;
-    
+
     client.query(
         &statement, 
         &[
@@ -169,14 +169,15 @@ pub async fn delete_planner(client: &Client, planner_info: Planner) -> Result<u6
 }
 
 pub async fn create_person(client: &Client, person_info: Person) -> Result<Person, MyError> {
-    let _stmt = "insert into person(person_name) values($1) returning $table_fields;";
+    let _stmt = "insert into person(person_name, planner_id) values($1, $2) returning $table_fields;";
     let _stmt = _stmt.replace("$table_fields", &Person::sql_fields());
     let statement = client.prepare(&_stmt).await.map_err(MyError::PGError)?;
 
     client.query(
         &statement,
         &[
-            &person_info.person_name
+            &person_info.person_name,
+            &person_info.planner_id,
         ]
     )
     .await
@@ -261,7 +262,7 @@ pub async fn delete_affiliation(client: &Client, affiliation_info: Affiliation) 
 }
 
 pub async fn create_organization(client: &Client, organization_info: Organization) -> Result<Organization, MyError> {
-    let _stmt = "insert into organization(organization_name) values ($1) returning $table_fields;";
+    let _stmt = "insert into organization(organization_name, planner_id) values ($1, $2) returning $table_fields;";
     let _stmt = _stmt.replace("$table_fields", &Organization::sql_table_fields());
     let statement = client.prepare(&_stmt).await.map_err(MyError::PGError)?;
 
@@ -269,6 +270,7 @@ pub async fn create_organization(client: &Client, organization_info: Organizatio
         &statement,
         &[
             &organization_info.organization_name,
+            &organization_info.planner_id,
         ]
     )
     .await
